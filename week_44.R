@@ -5,6 +5,7 @@
 
 library(leaflet)
 library(tidyverse)
+library(mapview)
 
 nyc_squirrels <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-10-29/nyc_squirrels.csv")
 
@@ -60,7 +61,7 @@ squirrel_basic_long_filt <-
 # approaches, indifferent, runs_from (and their opposite: "nt_")
 # create palette of color for all levels of interaction
 
-pal <- colorFactor("Dark2", levels = c("appro", "nt_appr", "indiff", "nt_indiff",
+pal <- colorFactor("viridis", levels = c("appro", "nt_appr", "indiff", "nt_indiff",
                                        "runs", "nt_runs"))
 
 
@@ -81,9 +82,34 @@ squirrel_basic_long %>%
 
 # probably most accurate so far: showing only the observation where there was a TRUE
 # concerning a specific interaction
-squirrel_basic_long_filt %>%
+squirrel_plot <-
+    squirrel_basic_long_filt %>%
     addTiles() %>%
     addCircleMarkers(lng = ~long, lat = ~lat, radius = 2, color = ~pal(human_inter)) %>%
     addLegend("bottomright", pal = pal, values = ~human_inter,
               title = "Human interactions",
               opacity = 1)
+
+mapshot(squirrel_plot, file = "squirrel.png")
+
+
+#-----------------------
+# visualizing with ggplot 
+# just to make sure that they are mostly indifferent with humans, as the map suggested
+
+names(squirrel_long)
+
+squirrel_long_true %>%
+    group_by(human_inter) %>%
+    summarize(sum = sum(value)) %>%
+    ggplot()+
+    geom_col(aes(x = human_inter, y = sum,  fill = human_inter), color = "black")+
+    theme_classic()+
+    scale_fill_viridis_d(breaks=c("appro", "indiff", "runs"), labels=c("Approaches",
+                                                                       "Indifferent",
+                                                                       "Runs away"))+
+    theme(legend.position="bottom")+
+    labs(fill = "Interaction with humans")+
+    scale_y_continuous(breaks=seq(0,1500,by=200))+
+    xlab("Interaction with human") + ylab("Amount of observations")
+
